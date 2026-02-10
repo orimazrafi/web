@@ -1,0 +1,18 @@
+---
+description: Make edits apply cleanly (avoid “keep old / take new” blocks)
+alwaysApply: true
+---
+
+# Clean, conflict-free edits
+
+When editing files, optimize for changes that apply automatically without producing conflict blocks (e.g. “keep old / take new”).
+
+- Prefer **small, surgical edits** over rewrites. Change the minimum number of lines needed.
+- **Do not reformat** unrelated code (whitespace, quote style, imports, etc.) unless required for the task.
+- Before editing, **read the current file contents** and make sure patches match exactly.
+- Use **unique, stable context** around edits (include a few unchanged lines above/below) so patches apply reliably.
+- If an edit would touch many places, do it in **multiple smaller patches** instead of one large patch.
+- Avoid moving blocks of code unless explicitly requested.
+
+If a patch fails to apply cleanly, re-read the latest file state and retry with a smaller, more targeted change.
+
