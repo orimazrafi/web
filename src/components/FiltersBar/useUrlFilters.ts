@@ -6,10 +6,72 @@ function toISODateOnly(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function parseArray(v: string | null) {
-  if (!v) return undefined;
-  const arr = v.split(",").map((x) => x.trim()).filter(Boolean);
-  return arr.length ? arr : undefined;
+export type DatePresetId =
+  | "today"
+  | "yesterday"
+  | "last7"
+  | "last14"
+  | "last30"
+  | "thisMonth"
+  | "lastMonth";
+
+export const DATE_PRESETS: { id: DatePresetId; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "last7", label: "Last 7 days" },
+  { id: "last14", label: "Last 14 days" },
+  { id: "last30", label: "Last 30 days" },
+  { id: "thisMonth", label: "This month" },
+  { id: "lastMonth", label: "Last month" },
+];
+
+export function getDateRangeForPreset(
+  presetId: DatePresetId,
+  refDate: Date = new Date()
+): { from: string; to: string } {
+  const today = toISODateOnly(refDate);
+  const t = refDate.getTime();
+  const day = 86400000;
+
+  switch (presetId) {
+    case "today":
+      return { from: today, to: today };
+    case "yesterday": {
+      const y = new Date(t - day);
+      const yStr = toISODateOnly(y);
+      return { from: yStr, to: yStr };
+    }
+    case "last7":
+      return { from: toISODateOnly(new Date(t - 6 * day)), to: today };
+    case "last14":
+      return { from: toISODateOnly(new Date(t - 13 * day)), to: today };
+    case "last30":
+      return { from: toISODateOnly(new Date(t - 29 * day)), to: today };
+    case "thisMonth": {
+      const d = new Date(refDate);
+      d.setDate(1);
+      return { from: toISODateOnly(d), to: today };
+    }
+    case "lastMonth": {
+      const d = new Date(refDate.getFullYear(), refDate.getMonth(), 0);
+      const first = new Date(d.getFullYear(), d.getMonth(), 1);
+      return { from: toISODateOnly(first), to: toISODateOnly(d) };
+    }
+    default:
+      return { from: toISODateOnly(new Date(t - 13 * day)), to: today };
+  }
+}
+
+export function getPresetIdFromRange(
+  from: string,
+  to: string,
+  refDate: Date = new Date()
+): DatePresetId | "custom" {
+  for (const preset of DATE_PRESETS) {
+    const range = getDateRangeForPreset(preset.id, refDate);
+    if (range.from === from && range.to === to) return preset.id;
+  }
+  return "custom";
 }
 
 function readFiltersFromUrl(): Filters {
@@ -17,6 +79,7 @@ function readFiltersFromUrl(): Filters {
 
   const to = sp.get("to");
   const from = sp.get("from");
+  const asset = sp.get("asset") ?? "bitcoin";
 
   // default: last 14 days
   const defaultTo = toISODateOnly(new Date());
@@ -25,8 +88,7 @@ function readFiltersFromUrl(): Filters {
   return {
     from: from ?? defaultFrom,
     to: to ?? defaultTo,
-    source: parseArray(sp.get("source")),
-    type: parseArray(sp.get("type")),
+    asset,
   };
 }
 
@@ -35,12 +97,7 @@ function writeFiltersToUrl(next: Filters) {
 
   sp.set("from", next.from);
   sp.set("to", next.to);
-
-  if (next.source?.length) sp.set("source", next.source.join(","));
-  else sp.delete("source");
-
-  if (next.type?.length) sp.set("type", next.type.join(","));
-  else sp.delete("type");
+  sp.set("asset", next.asset);
 
   const newUrl = `${window.location.pathname}?${sp.toString()}`;
   window.history.replaceState({}, "", newUrl);

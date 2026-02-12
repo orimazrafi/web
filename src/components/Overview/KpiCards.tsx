@@ -1,3 +1,5 @@
+import { useCoinMarketData } from "../../api/useCoinMarketData";
+
 type Kpi = {
   label: string;
   value: string;
@@ -5,14 +7,72 @@ type Kpi = {
   deltaLabel?: string;
 };
 
-const MOCK_KPIS: Kpi[] = [
-  { label: "Active Incidents", value: "3", delta: "+1", deltaLabel: "since yesterday" },
-  { label: "Requests / min", value: "12.4k", delta: "+4.2%", deltaLabel: "vs last hour" },
-  { label: "Error Rate", value: "0.18%", delta: "-0.05%", deltaLabel: "vs last hour" },
-  { label: "P95 Latency", value: "420 ms", delta: "-35 ms", deltaLabel: "vs last hour" },
-];
+function formatUSD(n: number, compact = true): string {
+  if (compact && n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+  if (compact && n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (compact && n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(n);
+}
 
-export function KpiCards() {
+function formatPercent(p: number | null): string | undefined {
+  if (p == null || Number.isNaN(p)) return undefined;
+  const sign = p >= 0 ? "+" : "";
+  return `${sign}${p.toFixed(2)}%`;
+}
+
+function marketDataToKpis(data: {
+  current_price_usd: number;
+  market_cap_usd: number;
+  total_volume_usd: number;
+  market_cap_rank: number | null;
+  price_change_percentage_24h: number | null;
+  market_cap_change_percentage_24h: number | null;
+}): Kpi[] {
+  return [
+    {
+      label: "Price (USD)",
+      value: formatUSD(data.current_price_usd, false),
+      delta: formatPercent(data.price_change_percentage_24h),
+      deltaLabel: "24h change",
+    },
+    {
+      label: "Market Cap",
+      value: formatUSD(data.market_cap_usd),
+      delta: formatPercent(data.market_cap_change_percentage_24h),
+      deltaLabel: "24h change",
+    },
+    {
+      label: "24h Volume",
+      value: formatUSD(data.total_volume_usd),
+    },
+    {
+      label: "Market Cap Rank",
+      value: data.market_cap_rank != null ? `#${data.market_cap_rank}` : "—",
+    },
+  ];
+}
+
+export function KpiCards({ asset }: { asset: string }) {
+  const { data, isLoading, error } = useCoinMarketData(asset);
+
+  if (isLoading && !data) {
+    return (
+      <div style={{ marginTop: 24, color: "#999" }}>
+        Loading KPIs…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ marginTop: 24, color: "#e11" }}>
+        Failed to load market data: {error instanceof Error ? error.message : String(error)}
+      </div>
+    );
+  }
+
+  const kpis = data ? marketDataToKpis(data) : [];
+
   return (
     <div
       style={{
@@ -22,7 +82,7 @@ export function KpiCards() {
         marginTop: 24,
       }}
     >
-      {MOCK_KPIS.map(kpi => (
+      {kpis.map(kpi => (
         <div
           key={kpi.label}
           style={{
@@ -44,7 +104,7 @@ export function KpiCards() {
             {kpi.label}
           </div>
           <div style={{ fontSize: 24, fontWeight: 600 }}>{kpi.value}</div>
-          {kpi.delta && (
+          {kpi.delta != null && (
             <div style={{ marginTop: 4, fontSize: 12, color: "#7dd3fc" }}>
               {kpi.delta} <span style={{ color: "#777" }}>{kpi.deltaLabel}</span>
             </div>
@@ -54,4 +114,3 @@ export function KpiCards() {
     </div>
   );
 }
-

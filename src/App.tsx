@@ -39,11 +39,11 @@ export default function App() {
           background: "radial-gradient(circle at top, #020617 0, #020617 40%, #020617)",
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-          Ops &amp; Insights
+        <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+          Crypto Insights
         </div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
-          Dashboard
+          Markets Dashboard
         </div>
         <nav
           style={{
