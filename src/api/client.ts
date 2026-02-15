@@ -182,3 +182,79 @@ export async function fetchCoinMarketData(
     market_cap_change_percentage_24h: md.market_cap_change_percentage_24h ?? null,
   };
 }
+
+// --- Alerts & Audit log (backend only) ---
+
+export type AlertSeverity = "info" | "warn" | "error";
+
+export type AlertLogEntry = {
+  id: string;
+  date: string;
+  message: string;
+  severity: AlertSeverity;
+};
+
+export type AuditLogEntry = {
+  id: string;
+  date: string;
+  action: string;
+  actor: string;
+};
+
+function requireBackend(): void {
+  if (!USE_BACKEND) {
+    throw new Error("Alerts and audit log require the backend. Start it and set VITE_API_URL.");
+  }
+}
+
+export async function fetchAlerts(params: {
+  message?: string;
+  from?: string;
+  to?: string;
+  signal?: AbortSignal;
+}): Promise<AlertLogEntry[]> {
+  requireBackend();
+  const q = new URLSearchParams();
+  if (params.message) q.set("message", params.message);
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  const res = await fetch(`${API_BASE}/api/alerts?${q}`, { signal: params.signal });
+  if (!res.ok) throw new Error(`Alerts API failed (${res.status})`);
+  return res.json();
+}
+
+export async function postAlert(body: {
+  message: string;
+  severity?: AlertSeverity;
+  signal?: AbortSignal;
+}): Promise<AlertLogEntry> {
+  requireBackend();
+  const { signal, ...rest } = body;
+  const res = await fetch(`${API_BASE}/api/alerts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: rest.message.trim(), severity: rest.severity ?? "info" }),
+    signal,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error ?? `Alerts API failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchAuditLog(params: {
+  message?: string;
+  from?: string;
+  to?: string;
+  signal?: AbortSignal;
+}): Promise<AuditLogEntry[]> {
+  requireBackend();
+  const q = new URLSearchParams();
+  if (params.message) q.set("message", params.message);
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  const res = await fetch(`${API_BASE}/api/audit-log?${q}`, { signal: params.signal });
+  if (!res.ok) throw new Error(`Audit log API failed (${res.status})`);
+  return res.json();
+}

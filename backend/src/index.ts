@@ -4,6 +4,8 @@ import {
   fetchTimeseriesByCoin,
   fetchCoinMarketData,
 } from "./coingecko.js";
+import { listAlerts, addAlert, type AlertSeverity } from "./alertsStore.js";
+import { listAudit, addAudit } from "./auditStore.js";
 
 const ANALYTICS_COINS = ["bitcoin", "ethereum", "solana"] as const;
 const PORT = Number(process.env.PORT) || 3001;
@@ -99,7 +101,52 @@ app.get("/api/multi-timeseries", async (req, res) => {
   }
 });
 
+/** GET /api/alerts?message=&from=&to= — list alert log (filter by message, date range) */
+app.get("/api/alerts", (req, res) => {
+  const message = (req.query.message as string) ?? "";
+  const from = (req.query.from as string) ?? "";
+  const to = (req.query.to as string) ?? "";
+  const data = listAlerts({ message: message || undefined, from: from || undefined, to: to || undefined });
+  console.log(`[alerts] list -> ${data.length} entries`);
+  res.json(data);
+});
+
+/** POST /api/alerts — add alert log entry. Body: { message: string, severity?: "info"|"warn"|"error" } */
+app.post("/api/alerts", (req, res) => {
+  const { message, severity } = req.body as { message?: string; severity?: AlertSeverity };
+  if (!message || typeof message !== "string" || !message.trim()) {
+    res.status(400).json({ error: "Body must include non-empty message" });
+    return;
+  }
+  const sev: AlertSeverity = severity === "warn" || severity === "error" ? severity : "info";
+  const entry = addAlert(message.trim(), sev);
+  console.log(`[alerts] add -> ${entry.id} ${sev}`);
+  res.status(201).json(entry);
+});
+
+/** GET /api/audit-log?message=&from=&to= — list audit log */
+app.get("/api/audit-log", (req, res) => {
+  const message = (req.query.message as string) ?? "";
+  const from = (req.query.from as string) ?? "";
+  const to = (req.query.to as string) ?? "";
+  const data = listAudit({ message: message || undefined, from: from || undefined, to: to || undefined });
+  console.log(`[audit-log] list -> ${data.length} entries`);
+  res.json(data);
+});
+
+/** POST /api/audit-log — add audit entry. Body: { action: string, actor?: string } */
+app.post("/api/audit-log", (req, res) => {
+  const { action, actor } = req.body as { action?: string; actor?: string };
+  if (!action || typeof action !== "string" || !action.trim()) {
+    res.status(400).json({ error: "Body must include non-empty action" });
+    return;
+  }
+  const entry = addAudit(action.trim(), typeof actor === "string" && actor.trim() ? actor.trim() : "User");
+  console.log(`[audit-log] add -> ${entry.id}`);
+  res.status(201).json(entry);
+});
+
 app.listen(PORT, () => {
   console.log(`[server] Backend running at http://localhost:${PORT}`);
-  console.log("[server] Endpoints: GET /api/coins/:id, GET /api/coins/:id/market-chart/range?from=&to=, GET /api/multi-timeseries?from=&to=");
+  console.log("[server] Endpoints: coins, market-chart, multi-timeseries, GET/POST /api/alerts, GET /api/audit-log");
 });
