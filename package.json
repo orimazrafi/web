@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ci": "vitest run --project=!storybook",
+    "test:ci": "vitest run --config vitest.ci.config.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

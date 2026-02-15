@@ -22,7 +22,7 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Run frontend tests
+      - name: Run frontend tests (unit only, no Storybook)
         run: npm run test:ci
 
       - name: Install backend dependencies
