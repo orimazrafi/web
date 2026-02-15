@@ -21,7 +21,7 @@ describe("Card", () => {
   });
 
   it("forwards data attributes", () => {
-    const { container } = render(<Card data-testid="my-card">Hi</Card>);
+    render(<Card data-testid="my-card">Hi</Card>);
     expect(screen.getByTestId("my-card")).toBeInTheDocument();
   });
 });
