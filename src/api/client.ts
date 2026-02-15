@@ -1,5 +1,9 @@
 import type { Filters } from "../components/FiltersBar/types";
 
+const COINGECKO_API_BASE = "https://api.coingecko.com/api/v3";
+
+const HTTP_TOO_MANY_REQUESTS = 429;
+
 export type TimeseriesPoint = { ts: string; value: number };
 
 /** Thrown when API returns 429; treated as aborted so the request stops without using the response. */
@@ -40,6 +44,43 @@ function resolveCoinId(filters: any): string {
 
 export type FetchTimeseriesOptions = { signal?: AbortSignal };
 
+/** Fetch price timeseries for one coin and date range (for analytics multi-asset). */
+export async function fetchTimeseriesByCoin(
+  coinId: string,
+  from: string,
+  to: string,
+  opts?: FetchTimeseriesOptions
+): Promise<TimeseriesPoint[]> {
+  const fromSec = parseFromDate(from);
+  const toSec = parseToDate(to);
+  const vsCurrency = "usd";
+  const url =
+    `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range` +
+    `?vs_currency=${vsCurrency}&from=${fromSec}&to=${toSec}`;
+
+  const res = await fetch(url, { signal: opts?.signal });
+
+  if (res.status === HTTP_TOO_MANY_REQUESTS) {
+    res.body?.cancel?.();
+    throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
+  }
+  if (!res.ok) throw new Error(`Crypto API failed (${res.status})`);
+
+  const raw = await res.json();
+  let pricePairs: [number, number][] | undefined;
+  if (Array.isArray(raw?.prices)) {
+    pricePairs = raw.prices as [number, number][];
+  } else if (Array.isArray(raw?.prices?.prices)) {
+    pricePairs = raw.prices.prices as [number, number][];
+  }
+  if (!pricePairs) throw new Error("Unexpected crypto API response shape (missing prices array)");
+
+  return pricePairs.map(([ts, price]) => ({
+    ts: new Date(ts).toISOString(),
+    value: price,
+  }));
+}
+
 export async function fetchTimeseries(
   filters: Filters,
   opts?: FetchTimeseriesOptions
@@ -51,12 +92,12 @@ export async function fetchTimeseries(
   const vsCurrency = "usd";
 
   const url =
-    `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart/range` +
+    `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range` +
     `?vs_currency=${vsCurrency}&from=${fromSec}&to=${toSec}`;
 
   const res = await fetch(url, { signal: opts?.signal });
 
-  if (res.status === 429) {
+  if (res.status === HTTP_TOO_MANY_REQUESTS) {
     res.body?.cancel?.();
     throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
   }
@@ -103,11 +144,11 @@ export async function fetchCoinMarketData(
   coinId: string,
   opts?: FetchTimeseriesOptions
 ): Promise<CoinMarketData> {
-  const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}?${COIN_DETAIL_PARAMS}`;
+  const url = `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}?${COIN_DETAIL_PARAMS}`;
 
   const res = await fetch(url, { signal: opts?.signal });
 
-  if (res.status === 429) {
+  if (res.status === HTTP_TOO_MANY_REQUESTS) {
     res.body?.cancel?.();
     throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
   }

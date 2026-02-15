@@ -6,6 +6,7 @@ import {
   getDateRangeForPreset,
   getPresetIdFromRange,
 } from "./useUrlFilters";
+import styles from "./FiltersBar.module.scss";
 
 const ASSETS = [
   { id: "bitcoin", label: "Bitcoin (BTC)" },
@@ -32,8 +33,8 @@ export function FiltersBar({
   }, [filters.from, filters.to, presetFromDates]);
 
   return (
-    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "end", marginBottom: 16 }}>
-      <label style={{ display: "grid", gap: 6 }}>
+    <div className={styles.root}>
+      <label className={styles.label}>
         <span>Date range</span>
         <select
           value={datePreset}
@@ -46,7 +47,7 @@ export function FiltersBar({
               onChange(getDateRangeForPreset(id));
             }
           }}
-          style={{ minWidth: 160 }}
+          className={styles.selectDate}
         >
           {DATE_PRESETS.map((p) => (
             <option key={p.id} value={p.id}>
@@ -59,7 +60,7 @@ export function FiltersBar({
 
       {isCustom && (
         <>
-          <label style={{ display: "grid", gap: 6 }}>
+          <label className={styles.label}>
             <span>From</span>
             <input
               type="date"
@@ -67,7 +68,7 @@ export function FiltersBar({
               onChange={(e) => onChange({ from: e.target.value })}
             />
           </label>
-          <label style={{ display: "grid", gap: 6 }}>
+          <label className={styles.label}>
             <span>To</span>
             <input
               type="date"
@@ -78,12 +79,12 @@ export function FiltersBar({
         </>
       )}
 
-      <label style={{ display: "grid", gap: 6 }}>
+      <label className={styles.label}>
         <span>Asset</span>
         <select
           value={filters.asset}
           onChange={(e) => onChange({ asset: e.target.value })}
-          style={{ minWidth: 200 }}
+          className={styles.selectAsset}
         >
           {ASSETS.map((a) => (
             <option key={a.id} value={a.id}>

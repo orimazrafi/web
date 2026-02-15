@@ -1,0 +1,128 @@
+.root {
+  padding: 24px;
+}
+
+.title {
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbarLabel {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.coinToggles {
+  display: flex;
+  gap: 4px;
+}
+
+.toggle {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #111;
+  color: #9ca3af;
+  font-size: 13px;
+  cursor: pointer;
+
+  &.active {
+    background: #1e3a5f;
+    color: #7dd3fc;
+  }
+}
+
+.select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #111;
+  color: #e5e7eb;
+  min-width: 140px;
+}
+
+.metricToggles {
+  display: flex;
+  gap: 4px;
+}
+
+.error {
+  margin-bottom: 24px;
+  color: #ef4444;
+}
+
+.chartWrap {
+  margin-bottom: 24px;
+}
+
+.correlationCard {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1a1d24 0%, #0f1115 100%);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  padding: 20px;
+  max-width: 360px;
+}
+
+.correlationTitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.thLeft {
+  text-align: left;
+  padding: 8px 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.thCenter {
+  text-align: center;
+  padding: 8px 12px;
+}
+
+.tdRowLabel {
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.coinBtc {
+  color: #f59e0b;
+}
+.coinEth {
+  color: #6366f1;
+}
+.coinSol {
+  color: #22c55e;
+}
+
+.tdCell {
+  text-align: center;
+  padding: 8px 12px;
+  color: #e5e7eb;
+}

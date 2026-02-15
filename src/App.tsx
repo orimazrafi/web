@@ -4,6 +4,7 @@ import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { AlertsPage } from "./pages/AlertsPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import styles from "./App.module.scss";
 
 export default function App() {
   type PageKey = "overview" | "analytics" | "operations" | "alerts" | "audit-log";
@@ -18,80 +19,28 @@ export default function App() {
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#020617",
-        color: "#e5e7eb",
-        fontFamily:
-          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
-    >
-      <aside
-        style={{
-          width: 220,
-          borderRight: "1px solid #111827",
-          padding: "16px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          background: "radial-gradient(circle at top, #020617 0, #020617 40%, #020617)",
-        }}
-      >
-        <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
-          Crypto Insights
-        </div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
-          Markets Dashboard
-        </div>
-        <nav
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            marginTop: 8,
-          }}
-        >
-          {items.map(item => {
+    <div className={styles.root}>
+      <aside className={styles.aside}>
+        <div className={styles.title}>Crypto Insights</div>
+        <div className={styles.subtitle}>Markets Dashboard</div>
+        <nav className={styles.nav}>
+          {items.map((item) => {
             const active = page === item.key;
             return (
               <button
                 key={item.key}
                 type="button"
                 onClick={() => setPage(item.key)}
-                style={{
-                  textAlign: "left",
-                  border: "none",
-                  outline: "none",
-                  cursor: "pointer",
-                  borderRadius: 6,
-                  padding: "8px 10px",
-                  fontSize: 14,
-                  backgroundColor: active ? "#0f172a" : "transparent",
-                  color: active ? "#e5e7eb" : "#9ca3af",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
+                className={`${styles.navButton} ${active ? styles.active : ""}`}
               >
                 <span>{item.label}</span>
-                {active && (
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "999px",
-                      backgroundColor: "#22c55e",
-                    }}
-                  />
-                )}
+                {active && <span className={styles.navDot} />}
               </button>
             );
           })}
         </nav>
       </aside>
-      <main style={{ flex: 1 }}>
+      <main className={styles.main}>
         {page === "overview" && <OverviewPage />}
         {page === "analytics" && <AnalyticsPage />}
         {page === "operations" && <OperationsPage />}

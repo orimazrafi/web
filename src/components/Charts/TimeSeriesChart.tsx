@@ -1,7 +1,39 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { format, parseISO } from "date-fns";
 import type { Filters } from "../FiltersBar/types";
 import { useTimeseries } from "../../api/useTimeseries";
 import { ChartSkeleton } from "./ChartSkeleton";
+import styles from "./TimeSeriesChart.module.scss";
+
+const AXIS_COLOR = "#64748b";
+const GRID_COLOR = "rgba(100, 116, 139, 0.15)";
+const LINE_COLOR = "#38bdf8";
+const FILL_OPACITY = 0.2;
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatAxisDate(ts: string): string {
+  try {
+    return format(parseISO(ts), "MMM d");
+  } catch {
+    return ts;
+  }
+}
 
 export function TimeSeriesChart({ filters }: { filters: Filters }) {
   const { data, isLoading, isFetching } = useTimeseries(filters);
@@ -11,50 +43,62 @@ export function TimeSeriesChart({ filters }: { filters: Filters }) {
   }
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: 320,
-        border: "1px solid #444",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <div className={styles.wrapper}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <XAxis dataKey="ts" hide />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="value" strokeWidth={2} dot={false} />
-        </LineChart>
+        <AreaChart data={data ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={LINE_COLOR} stopOpacity={FILL_OPACITY} />
+              <stop offset="100%" stopColor={LINE_COLOR} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+          <XAxis
+            dataKey="ts"
+            tickFormatter={formatAxisDate}
+            stroke={AXIS_COLOR}
+            tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            dy={8}
+          />
+          <YAxis
+            tickFormatter={(v: number) => formatPrice(v)}
+            stroke={AXIS_COLOR}
+            tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            width={56}
+            tickMargin={8}
+          />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const point = payload[0].payload as { ts: string; value: number };
+              return (
+                <div className={styles.tooltip}>
+                  <div className={styles.tooltipDate}>{formatAxisDate(point.ts)}</div>
+                  <div className={styles.tooltipValue}>{formatPrice(point.value)}</div>
+                </div>
+              );
+            }}
+            cursor={{ stroke: GRID_COLOR, strokeWidth: 1 }}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            fill="url(#chartFill)"
+            stroke={LINE_COLOR}
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4, fill: LINE_COLOR, stroke: "#0f1115", strokeWidth: 2 }}
+          />
+        </AreaChart>
       </ResponsiveContainer>
 
       {isFetching && data && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.6))",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "flex-end",
-            padding: 8,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 11,
-              color: "#e5e5e5",
-              background: "rgba(15,15,15,0.9)",
-              borderRadius: 999,
-              padding: "4px 10px",
-              border: "1px solid rgba(75,75,75,0.9)",
-            }}
-          >
-            Refreshing… data may be up to 30s old
-          </div>
+        <div className={styles.updatingOverlay}>
+          <span className={styles.updatingBadge}>Updating…</span>
         </div>
       )}
     </div>

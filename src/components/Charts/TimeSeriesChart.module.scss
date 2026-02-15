@@ -1,0 +1,53 @@
+.wrapper {
+  width: 100%;
+  height: 340px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1a1d24 0%, #0f1115 100%);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  padding: 20px 16px 8px 8px;
+  box-sizing: border-box;
+}
+
+.tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.tooltipDate {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.tooltipValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.updatingOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.updatingBadge {
+  font-size: 11px;
+  color: #64748b;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
