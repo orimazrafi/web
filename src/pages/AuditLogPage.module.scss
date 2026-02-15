@@ -1,0 +1,90 @@
+.root {
+  padding: 24px;
+}
+
+.title {
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.toolbarGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolbarLabel {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #111;
+  color: #e5e7eb;
+  font-size: 14px;
+  min-width: 160px;
+}
+
+.card {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1a1d24 0%, #0f1115 100%);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  padding: 20px;
+}
+
+.logList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.logItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.15);
+  font-size: 14px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.logDate {
+  color: #64748b;
+  white-space: nowrap;
+  min-width: 160px;
+}
+
+.logAction {
+  flex: 1;
+  color: #e5e7eb;
+}
+
+.logActor {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.empty {
+  color: #64748b;
+  font-size: 14px;
+  padding: 24px 0;
+}

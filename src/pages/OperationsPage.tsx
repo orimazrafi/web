@@ -5,8 +5,8 @@ export function OperationsPage() {
     <div className={styles.root}>
       <h1 className={styles.title}>Operations</h1>
       <p className={styles.subtitle}>
-        Monitor incidents, statuses, and operational health. This page will host
-        the incidents list, status chips, and create/update actions.
+        Monitor incidents, statuses, and operational health. Here you can later add
+        an incidents list, status chips, and create/update actions.
       </p>
     </div>
   );
