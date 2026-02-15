@@ -10,6 +10,8 @@ const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(file
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [react()],
+  // For GitHub Pages: set BASE_PATH to /repo-name/ (e.g. /web/) so assets load correctly
+  base: process.env.BASE_PATH || "/",
   test: {
     environment: "jsdom",
     globals: true,
