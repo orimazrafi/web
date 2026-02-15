@@ -1,6 +1,20 @@
 import type { Filters } from "../components/FiltersBar/types";
 
 const COINGECKO_API_BASE = "https://api.coingecko.com/api/v3";
+const DEFAULT_BACKEND_URL = "http://localhost:3001";
+
+/**
+ * In dev: use backend by default (localhost:3001) so all APIs go through the Node server.
+ * Override with VITE_API_URL in .env (set to "" to call CoinGecko directly in dev).
+ * In production: use backend only when VITE_API_URL is set; else CoinGecko.
+ */
+const envUrl = typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL;
+const API_BASE =
+  (envUrl && String(envUrl).trim() !== "" ? String(envUrl).trim() : null) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.DEV ? DEFAULT_BACKEND_URL : null) ||
+  COINGECKO_API_BASE;
+
+const USE_BACKEND = API_BASE !== COINGECKO_API_BASE;
 
 const HTTP_TOO_MANY_REQUESTS = 429;
 
@@ -44,6 +58,35 @@ function resolveCoinId(filters: any): string {
 
 export type FetchTimeseriesOptions = { signal?: AbortSignal };
 
+export type MultiTimeseriesResult = Record<string, TimeseriesPoint[]>;
+
+const ANALYTICS_COINS = ["bitcoin", "ethereum", "solana"] as const;
+
+/** Multi-coin timeseries in one call when using backend; otherwise three parallel calls. */
+export async function fetchMultiTimeseries(
+  from: string,
+  to: string,
+  opts?: FetchTimeseriesOptions
+): Promise<MultiTimeseriesResult> {
+  if (USE_BACKEND) {
+    const url = `${API_BASE}/api/multi-timeseries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const res = await fetch(url, { signal: opts?.signal });
+    if (res.status === HTTP_TOO_MANY_REQUESTS) {
+      res.body?.cancel?.();
+      throw new RateLimit429Error("Rate limit (429) — try again in a minute");
+    }
+    if (!res.ok) throw new Error(`Crypto API failed (${res.status})`);
+    return res.json() as Promise<MultiTimeseriesResult>;
+  }
+  const entries = await Promise.all(
+    ANALYTICS_COINS.map(async (coinId) => {
+      const series = await fetchTimeseriesByCoin(coinId, from, to, opts);
+      return [coinId, series] as const;
+    })
+  );
+  return Object.fromEntries(entries);
+}
+
 /** Fetch price timeseries for one coin and date range (for analytics multi-asset). */
 export async function fetchTimeseriesByCoin(
   coinId: string,
@@ -51,22 +94,22 @@ export async function fetchTimeseriesByCoin(
   to: string,
   opts?: FetchTimeseriesOptions
 ): Promise<TimeseriesPoint[]> {
-  const fromSec = parseFromDate(from);
-  const toSec = parseToDate(to);
-  const vsCurrency = "usd";
-  const url =
-    `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range` +
-    `?vs_currency=${vsCurrency}&from=${fromSec}&to=${toSec}`;
+  const url = USE_BACKEND
+    ? `${API_BASE}/api/coins/${encodeURIComponent(coinId)}/market-chart/range?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    : `${API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range?vs_currency=usd&from=${parseFromDate(from)}&to=${parseToDate(to)}`;
 
   const res = await fetch(url, { signal: opts?.signal });
 
   if (res.status === HTTP_TOO_MANY_REQUESTS) {
     res.body?.cancel?.();
-    throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
+    throw new RateLimit429Error("Rate limit (429) — try again in a minute");
   }
   if (!res.ok) throw new Error(`Crypto API failed (${res.status})`);
 
   const raw = await res.json();
+  if (USE_BACKEND && Array.isArray(raw)) {
+    return raw as TimeseriesPoint[];
+  }
   let pricePairs: [number, number][] | undefined;
   if (Array.isArray(raw?.prices)) {
     pricePairs = raw.prices as [number, number][];
@@ -85,45 +128,12 @@ export async function fetchTimeseries(
   filters: Filters,
   opts?: FetchTimeseriesOptions
 ): Promise<TimeseriesPoint[]> {
-  const coinId = resolveCoinId(filters as any);
-  const fromSec = parseFromDate((filters as any).from);
-  const toSec = parseToDate((filters as any).to);
-
-  const vsCurrency = "usd";
-
-  const url =
-    `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range` +
-    `?vs_currency=${vsCurrency}&from=${fromSec}&to=${toSec}`;
-
-  const res = await fetch(url, { signal: opts?.signal });
-
-  if (res.status === HTTP_TOO_MANY_REQUESTS) {
-    res.body?.cancel?.();
-    throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
-  }
-  if (!res.ok) throw new Error(`Crypto API failed (${res.status})`);
-
-  // Support both flat and nested shapes the user described:
-  // { prices: [[ts, price]], market_caps: [[ts, cap]], total_volume: [[ts, vol]] }
-  // or { prices: { prices: [[ts, price]], market_caps: [[ts, cap]], total_volume: [[ts, vol]] } }
-  const raw = await res.json();
-
-  let pricePairs: [number, number][] | undefined;
-
-  if (Array.isArray(raw?.prices)) {
-    pricePairs = raw.prices as [number, number][];
-  } else if (Array.isArray(raw?.prices?.prices)) {
-    pricePairs = raw.prices.prices as [number, number][];
-  }
-
-  if (!pricePairs) {
-    throw new Error("Unexpected crypto API response shape (missing prices array)");
-  }
-
-  return pricePairs.map(([ts, price]) => ({
-    ts: new Date(ts).toISOString(),
-    value: price,
-  }));
+  return fetchTimeseriesByCoin(
+    resolveCoinId(filters as Filters),
+    (filters as Filters).from,
+    (filters as Filters).to,
+    opts
+  );
 }
 
 // --- Coin detail (market data for KPIs) ---
@@ -144,17 +154,22 @@ export async function fetchCoinMarketData(
   coinId: string,
   opts?: FetchTimeseriesOptions
 ): Promise<CoinMarketData> {
-  const url = `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}?${COIN_DETAIL_PARAMS}`;
+  const url = USE_BACKEND
+    ? `${API_BASE}/api/coins/${encodeURIComponent(coinId)}`
+    : `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}?${COIN_DETAIL_PARAMS}`;
 
   const res = await fetch(url, { signal: opts?.signal });
 
   if (res.status === HTTP_TOO_MANY_REQUESTS) {
     res.body?.cancel?.();
-    throw new RateLimit429Error("CoinGecko rate limit (429) — try again in a minute");
+    throw new RateLimit429Error("Rate limit (429) — try again in a minute");
   }
   if (!res.ok) throw new Error(`Crypto API failed (${res.status})`);
 
   const raw = await res.json();
+  if (USE_BACKEND && raw?.current_price_usd !== undefined) {
+    return raw as CoinMarketData;
+  }
   const md = raw?.market_data;
   if (!md) throw new Error("Unexpected coin API response (missing market_data)");
 
